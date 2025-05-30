@@ -1,0 +1,10 @@
+>activate py310a
+>cd g:/nox/2025/extract_excel_busan#5GT/docker_extract
+>dir  # Dockerfile/excel2feather2.py/requirements.txt
+>docker images
+>docker build -t streamlit-viewer .
+>docker run -p 8501:8501 -v G:/nox/2025/extract_excel_busan#5GT:/app/data streamlit-viewer
+>docker run -p 8501:8501 -v %cd%:/app/data streamlit-viewer
+>docker run -p 8502:8501 -v %cd%:/app/data streamlit-viewer  # 포트가 사용 중일 때
+>docker rmi -f image-id
+
