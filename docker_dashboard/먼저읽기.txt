@@ -1,0 +1,63 @@
+>activate py310a
+>cd g:/nox/2025/extract_excel_busan#5GT/docker_dashboard
+>dir  # Dockerfile/extract_dashboard2.py/requirements.txt/fuel_temp_et.npy/fuel_temp_st.npy
+>docker images
+>docker build -t streamlit-dashboard .
+>docker run -p 8501:8501 -v G:/nox/2025/extract_excel_busan#5GT:/app/data streamlit-dashboard
+>docker run -p 8501:8501 -v %cd%:/app/data streamlit-dashboard
+>docker rmi -f image-id
+
+
+docker로 옮길때 수정사항
+----------------------
+1. crop저장위치를 save_folder = "/app" 로 변경
+2. ftr파일 로드할 때 파일명에 한글이름 들어가면 안됨
+3. 한글폰트를 변경
+from matplotlib import font_manager, rc
+font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
+font_name = font_manager.FontProperties(fname=font_path).get_name()
+rc('font', family=font_name)  
+plt.rcParams['axes.unicode_minus'] = False
+
+4. docker 실행할 때, crop된 파일을 저장 후에 내 컴퓨터에 남으려면, /app/data으로 해야 함
+> docker run -p 8501:8501 -v %cd%:/app/data streamlit-dashboard
+
+5. wiwndows에서 개발할 때는 괜찮았는데 도커에서 매칭 문제가 생겨서 전처리하는 다음 코드 추가
+# ------------------------------------------------------------------------------------------
+# 데이터 준비 및 전처리
+def preprocess_signal(signal2):
+    # NaN 및 Inf 값 확인
+    nan_mask = np.isnan(signal2)
+    inf_mask = np.isinf(signal2)
+    
+    if np.any(nan_mask) or np.any(inf_mask):
+        print(f"Found {np.sum(nan_mask)} NaN values and {np.sum(inf_mask)} Inf values")
+        
+        # NaN/Inf 값 제거를 위한 복사본 생성
+        clean_signal = signal2.copy()
+        
+        # 단순한 방법: NaN 및 Inf 값을 이웃 값의 평균으로 대체
+        bad_indices = np.where(nan_mask | inf_mask)[0]
+        for idx in bad_indices:
+            # 좌우 10개 샘플 내에서 유효한 값을 찾아 평균 계산
+            window_start = max(0, idx - 10)
+            window_end = min(len(signal2), idx + 11)
+            window = signal2[window_start:window_end]
+            valid_values = window[~(np.isnan(window) | np.isinf(window))]
+            
+            if len(valid_values) > 0:
+                clean_signal[idx] = np.mean(valid_values)
+            else:
+                # 주변에 유효한 값이 없으면 0으로 대체
+                clean_signal[idx] = 0
+        
+        return clean_signal
+    
+    return signal2
+
+# 전처리 적용
+signal = preprocess_signal(signal)
+template_1 = preprocess_signal(template_1)
+template_2 = preprocess_signal(template_2)
+# ------------------------------------------------------------------------------------------
+
